@@ -1,6 +1,6 @@
 # Compositional Functions
 
-Asynchronous programming is clearly a pain point for JavaScript developers. The async/await syntax would be a valuable addition to the JavaScript language. However the async/await syntax can only emit a Promise, which is just one of any number of different asynchronous primitives.
+Asynchronous programming is clearly a pain point for JavaScript developers. The async/await syntax would be a valuable addition to the JavaScript language. However the async/await syntax can only emit a Promise, which is one of any number of different asynchronous primitives used in JavaScript programs.
 
 Other asynchronous primitives include:
 
@@ -56,7 +56,7 @@ var getStockPrice = async[Symbol.fromGenerator](function*(name) {
 Here is the definition of the Symbol.fromGenerator function:
 
 ```JavaScript
-Promise[Symbol.fromGenerator] = function(generator) {
+Promise[Symbol.fromGenerator] = function(genF) {
     return new Promise(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -185,7 +185,7 @@ Task.resolve = function(v) {
 Now we can define the composition function on the Task constructor:
 
 ```JavaScript
-Task[Symbol.fromGenerator] = function(generator) {
+Task[Symbol.fromGenerator] = function(genF) {
     return new Task(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -216,7 +216,7 @@ Task[Symbol.fromGenerator] = function(generator) {
 
 Now we can use compositional functions to sequence Tasks, which model asynchronous tasks that can be cancelled.
 
-If we refactor method to use Tasks instead of Promises, we can use the same compositional style to compose the Tasks.
+If we refactor the getStockSymbol and getStockPrice methods in the Promise example to use Tasks, we can use the same compositional style to compose the getStockPrice method from these two methods.
 
 ```JavaScript
 var getStockPrice = Task function(name) {
