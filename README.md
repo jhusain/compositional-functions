@@ -97,38 +97,57 @@ function Task(get) {
     var self = this;
 
     this.get = function(valueFn, throwFn) {
+        // send memoized error
         if (self.error) {
             throwFn(self.error);
         }
+        // send memoized value
         else if ('value' in self) {
-            valueFn(value);
+            valueFn(self.value);
         }
-
-        return get(
-            value => {
-                this.value = value;
-                valueFn(value);
-            }, 
-            error => {
-                this.error = error;
-                throwFn(error);
-            });
+        else {
+            return get(
+                value => {
+                    // memoize value
+                    this.value = value;
+                    valueFn(value);
+                }, 
+                error => {
+                    // memoize error
+                    this.error = error;
+                    throwFn(error);
+                });
+        }
     };
 }
 ```
 
-Tasks can be sequenced using the 'then' method.
+You can retrieve the value from a Task using the Task's get method:
 
 ```JavaScript
-Task.prototype.then = function(projection) {
+var subscription = task.get(value => console.log(value), error = console.error(error));
+```
+
+The get method returns a subscription object, which can be disposed in order to stop listening for the Tasks eventual value.
+
+```JavaScript
+var subscription = task.get(value => console.log(value), error = console.error(error));
+// signal to task that we're no longer interested in result
+subscription.dispose();
+```
+
+Tasks can be sequenced using the 'when' method.
+
+```JavaScript
+Task.prototype.when = function(projection) {
     var self = this;
     return new Task(function(valueFn, throwFn) {
         var subscription = 
             self.get(
                 x => {
                     try {
-                        var value = projection(x);
-                        valueFn(value);
+                        var nextTask = Task.resolve(projection(x));
+                        subscription = nextTask.get(valueFn, throwFn);
                     }
                     catch(e) {
                         throwFn(e);
@@ -136,24 +155,31 @@ Task.prototype.then = function(projection) {
                 },
                 throwFn);
 
-        return subscription;
+        return {
+          dispose: function() {
+            subscription.dispose();
+          }
+        };
     });
-}
+};
 ```
 
 You can also use the resolve function to coerce non-Task values into Tasks:
 
 ```JavaScript
-Task.prototype.resolve = function(v) {
+Task.resolve = function(v) {
     if (v instanceof Task) {
         return v;
     }
     else {
+        // Wrap value in Task that immediately sends the value
         return new Task(function(valueFn, errorFn) {
             valueFn(v);
+            // NOOP disposal
+            return { dispose: function() {} };
         });
     }
-}
+};
 ```
 
 Now we can define the composition function on the Task constructor:
@@ -177,7 +203,7 @@ Task[Symbol.fromGenerator] = function(generator) {
                 return;
             } 
             // not finished, chain off the yielded promise and `step` again
-            Task.resolve(next.value).then(function(v) {
+            Task.resolve(next.value).when(function(v) {
                 step(function() { return gen.next(v); });      
             }, function(e) {
                 step(function() { return gen.throw(e); });
@@ -208,3 +234,4 @@ var subscription =
 // immediately cancel outgoing requests
 subscription.dispose();
 ```
+
