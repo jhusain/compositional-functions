@@ -241,6 +241,10 @@ export { Task, fetchJSON, task };
 
 Now we can use fetchJSON to create Tasks, and sequence them with the 'task' composition functions to sequence Tasks. This makes it easy to create Task sequences that can be cancelled.
 
+## Refactoring Promise code to use Tasks
+
+Let's refactor the Promise example in the first section to use Tasks instead. First we use fetchJSON to rewrite the getStockSymbol and getStockPrice methods to use Tasks instead of Promises. 
+
 ```JavaScript
 
 import * from 'task';
@@ -253,8 +257,7 @@ function getStockPrice(symbol) {
     return fetchJSON('/stockPrice?' + symbol);
 }
 ```
-
-Let's refactor the Promise example in the previous section to use Tasks instead. First we use fetchJSON to rewrite the getStockSymbol and getStockPrice methods to use Tasks instead of Promises. Now we can simply change the composition function to refactor getStockPriceByName to emit Tasks instead of Promises.
+Now we can getStockPriceByName to emit Tasks instead of Promises by changing the composition function from 'async' to 'task'.
 
 ```JavaScript
 // ...continued
