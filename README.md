@@ -1,4 +1,4 @@
-# Compositional Functions
+# Composition Functions
 
 Asynchronous programming is clearly a pain point for JavaScript developers. The async/await syntax would be a valuable addition to the JavaScript language. However the async/await syntax can only emit a Promise, which is one of any number of different asynchronous primitives used in JavaScript programs.
 
@@ -15,11 +15,11 @@ A better approach is to add _extensible syntax_ to the language that can be exte
 
 # Compositional Functions
 
-The compositional function proposal is intended to allow for the composition of any async primitives that results in a single result. 
+The composition function proposal is intended to allow for the composition of any async primitives that results in a single result. 
 
-## Supporting Promise Composition with Compositional Functions
+## Promise Composition with a Composition Function
 
-Here is an example of compositional function used to produce a Promises:
+Here is an example of a composition function used to produce a Promise:
 
 ```JavaScript
 var getStockPrice = Promise function(name) {
@@ -46,17 +46,17 @@ The code above desugars to this:
 ```JavaScript
 var async = Promise;
 
-var getStockPrice = async[Symbol.fromGenerator](function*(name) {
+var getStockPrice = async[Symbol.composeFrom](function*(name) {
     var symbol = yield getStockSymbol(name);
     var stockPrice = yield getStockPrice(symbol);
     return stockPrice;
 });
 ```
 
-Here is the definition of the Symbol.fromGenerator function:
+Here is the definition of the Symbol.composeFrom function:
 
 ```JavaScript
-Promise[Symbol.fromGenerator] = function(genF) {
+Promise[Symbol.composeFrom] = function(genF) {
     return new Promise(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -85,9 +85,9 @@ Promise[Symbol.fromGenerator] = function(genF) {
 }
 ```
 
-## Supporting Task Composition with Compositional Functions
+## Task Composition with a Composition Function
 
-Compositional Functions can be applied to other asynchronous Primitives. Let's define an asynchronous Task primitive. The Task primitive represents the task of creating an asynchronous result.
+Composition Functions can be applied to other asynchronous Primitives. Let's define an asynchronous Task primitive. The Task primitive represents the task of creating an asynchronous result.
 
 Let's create a constructor for Task.
 
@@ -185,7 +185,7 @@ Task.resolve = function(v) {
 Now we can define the composition function on the Task constructor:
 
 ```JavaScript
-Task[Symbol.fromGenerator] = function(genF) {
+Task[Symbol.composeFrom] = function(genF) {
     return new Task(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -214,7 +214,7 @@ Task[Symbol.fromGenerator] = function(genF) {
 }
 ```
 
-Now we can use compositional functions to sequence Tasks, which model asynchronous tasks that can be cancelled.
+Now we can use composition functions to sequence Tasks, which model asynchronous tasks that can be cancelled.
 
 If we refactor the getStockSymbol and getStockPrice methods in the Promise example to use Tasks, we can use the same compositional style to compose the getStockPrice method from these two methods.
 
@@ -239,38 +239,38 @@ subscription.dispose();
 
 The set of syntax forms are the same as for generators.
 ```
-CompositionalFunctionDeclaration :
+CompositionFunctionDeclaration :
     Expression [no LineTerminator here] function BindingIdentifier ( FormalParameters ) { FunctionBody }
 
-CompositionalFunctionExpression :
+CompositionFunctionExpression :
     Expression [no LineTerminator here] function BindingIdentifier? ( FormalParameters ) { FunctionBody }
 
-CompositionalMethod :
+CompositionMethod :
     Expression PropertyName (StrictFormalParameters)  { FunctionBody }
 
-CompositionalArrowFunction :
+CompositionArrowFunction :
     Expression [no LineTerminator here] ArrowParameters [no LineTerminator here] => ConciseBody
 
 Declaration :
     ...
-    CompositionalFunctionDeclaration
+    CompositionFunctionDeclaration
 
 PrimaryExpression :
     ...
-    CompositionalFunctionExpression
+    CompositionFunctionExpression
 
 MethodDefinition :
     ...
-    CompositionalMethod
+    CompositionMethod
 
 AssignmentExpression :
     ...
-    CompositionalArrowFunction
+    CompositionArrowFunction
 
 UnaryExpression :
     ...
     await [Lexical goal InputElementRegExp] UnaryExpression
 
-Note:  await would only be legal inside a CompositionalFunction body.  
+Note:  await would only be legal inside a CompositionFunction body.  
        This could use similar formalism to ES6 parameterized grammar.
 ```
