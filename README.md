@@ -46,7 +46,7 @@ The code above desugars to this:
 ```JavaScript
 var async = Promise;
 
-var getStockPrice = async[Symbol.composeFrom](function*(name) {
+var getStockPrice = async[Symbol.compose](function*(name) {
     var symbol = yield getStockSymbol(name);
     var stockPrice = yield getStockPrice(symbol);
     return stockPrice;
@@ -56,7 +56,7 @@ var getStockPrice = async[Symbol.composeFrom](function*(name) {
 Here is the definition of the Symbol.composeFrom function:
 
 ```JavaScript
-Promise[Symbol.composeFrom] = function(genF) {
+Promise[Symbol.compose] = function(genF) {
     return new Promise(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -185,7 +185,7 @@ Task.resolve = function(v) {
 Now we can define the composition function on the Task constructor:
 
 ```JavaScript
-Task[Symbol.composeFrom] = function(genF) {
+Task[Symbol.compose] = function(genF) {
     return new Task(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
