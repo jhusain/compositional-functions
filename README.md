@@ -235,3 +235,42 @@ var subscription =
 subscription.dispose();
 ```
 
+## Syntax
+
+The set of syntax forms are the same as for generators.
+```
+CompositionalFunctionDeclaration :
+    Expression [no LineTerminator here] function BindingIdentifier ( FormalParameters ) { FunctionBody }
+
+CompositionalFunctionExpression :
+    Expression [no LineTerminator here] function BindingIdentifier? ( FormalParameters ) { FunctionBody }
+
+CompositionalMethod :
+    Expression PropertyName (StrictFormalParameters)  { FunctionBody }
+
+CompositionalArrowFunction :
+    Expression [no LineTerminator here] ArrowParameters [no LineTerminator here] => ConciseBody
+
+Declaration :
+    ...
+    CompositionalFunctionDeclaration
+
+PrimaryExpression :
+    ...
+    CompositionalFunctionExpression
+
+MethodDefinition :
+    ...
+    CompositionalMethod
+
+AssignmentExpression :
+    ...
+    CompositionalArrowFunction
+
+UnaryExpression :
+    ...
+    await [Lexical goal InputElementRegExp] UnaryExpression
+
+Note:  await would only be legal inside a CompositionalFunction body.  
+       This could use similar formalism to ES6 parameterized grammar.
+```
