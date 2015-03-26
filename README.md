@@ -53,7 +53,7 @@ var getStockPrice = async[Symbol.compose](function*(name) {
 });
 ```
 
-Here is the definition of the Symbol.composeFrom function:
+Here is the definition of the Symbol.compose function:
 
 ```JavaScript
 Promise[Symbol.compose] = function(genF) {
@@ -131,7 +131,7 @@ var subscription = task.get(value => console.log(value), error = console.error(e
 The get method returns a subscription object, which can be disposed in order to stop listening for the Tasks eventual value.
 
 ```JavaScript
-var subscription = task.get(value => console.log(value), error = console.error(error));
+var subscription = task.get(value => console.log(value), error => console.error(error));
 // signal to task that we're no longer interested in result
 subscription.dispose();
 ```
