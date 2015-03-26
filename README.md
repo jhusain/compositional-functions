@@ -13,7 +13,7 @@ The current async/await syntax can only produce Promises, forever using valuable
 
 A better approach is to add _extensible syntax_ to the language that can be extended by the community to compose any asynchronous primitive. This is the goal of the Compositional Function proposal.
 
-# Compositional Functions
+# Composition Functions
 
 The composition function proposal is intended to allow for the composition of any async primitives that results in a single result. 
 
