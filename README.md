@@ -22,19 +22,10 @@ The composition function proposal is intended to allow for the composition of an
 Here is an example of a composition function used to produce a Promise:
 
 ```JavaScript
-var getStockPrice = Promise function(name) {
-    var symbol = await getStockSymbol(name);
-    var stockPrice = await getStockPrice(symbol);
-    return stockPrice;
-}
-```
 
-If your system uses Promises as the core async primitive, you may want to alias Promise to emphasize that. By aliasing Promise to 'async' the code can match today's async/await proposal exactly:
+import async from 'async'
 
-```JavaScript
-var async = Promise;
-
-var getStockPrice = async function(name) {
+async function getStockPriceByName(name) {
     var symbol = await getStockSymbol(name);
     var stockPrice = await getStockPrice(symbol);
     return stockPrice;
@@ -44,19 +35,21 @@ var getStockPrice = async function(name) {
 The code above desugars to this:
 
 ```JavaScript
-var async = Promise;
+import async from 'async'
 
-var getStockPrice = async[Symbol.compose](function*(name) {
-    var symbol = yield getStockSymbol(name);
-    var stockPrice = yield getStockPrice(symbol);
-    return stockPrice;
-});
+function getStockPriceByName(name) {
+    return async(function*(name) {
+        var symbol = yield getStockSymbol(name);
+        var stockPrice = yield getStockPrice(symbol);
+        return stockPrice;
+    });
+}
 ```
 
-Here is the definition of the Symbol.compose function:
+Here is the definition of the Composition Function:
 
 ```JavaScript
-Promise[Symbol.compose] = function(genF) {
+function async(genF) {
     return new Promise(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -92,7 +85,6 @@ Composition Functions can be applied to other asynchronous Primitives. Let's def
 Let's create a constructor for Task.
 
 ```JavaScript
-
 function Task(get) {
     var self = this;
 
@@ -125,7 +117,7 @@ function Task(get) {
 You can retrieve the value from a Task using the Task's get method:
 
 ```JavaScript
-var subscription = task.get(value => console.log(value), error = console.error(error));
+var subscription = task.get(value => console.log(value), error => console.error(error));
 ```
 
 The get method returns a subscription object, which can be disposed in order to stop listening for the Tasks eventual value.
@@ -182,10 +174,10 @@ Task.resolve = function(v) {
 };
 ```
 
-Now we can define the composition function on the Task constructor:
+Now we can define the composition function for Tasks:
 
 ```JavaScript
-Task[Symbol.compose] = function(genF) {
+function task(genF) {
     return new Task(function(resolve, reject) {
         var gen = genF();
         function step(nextF) {
@@ -214,42 +206,91 @@ Task[Symbol.compose] = function(genF) {
 }
 ```
 
-Now we can use composition functions to sequence Tasks, which model asynchronous tasks that can be cancelled.
-
-If we refactor the getStockSymbol and getStockPrice methods in the Promise example to use Tasks, we can use the same compositional style to compose the getStockPrice method from these two methods.
+Now let's add a 'fetchJSON' function to our Task module. This function creates a Task to retrieve JSON from an URL. This action can be cancelled at any time.
 
 ```JavaScript
-var getStockPrice = Task function(name) {
+function fetchJSON(url) {
+  return new Task((valueFn, errorFn) => {
+    var xmlhttp = new XMLHttpRequest();
+
+    xmlhttp.onreadystatechange = function() {
+      if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        valueFn(JSON.parse(xmlhttp.responseText));
+      }
+      else if (xmlhttp.status >= 400) {
+        errorFn(xmlhttp.status);
+      }
+    });
+  
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();
+    
+    return { dispose: () => xmlhttp.abort() };
+  });
+}
+```
+
+Now we export the Task constructor, composition function, and 'fetchJSON' function.
+
+
+```JavaScript
+//---------- task.js -------------//
+
+export { Task, fetchJSON, task };
+```
+
+Now we can use fetchJSON to create Tasks, and sequence them with the 'task' composition functions to sequence Tasks. This makes it easy to create Task sequences that can be cancelled.
+
+```JavaScript
+
+import * from 'task';
+
+function getStockSymbol(name) {
+    return fetchJSON('/stockName?' + name);
+}
+
+function getStockPrice(symbol) {
+    return fetchJSON('/stockPrice?' + symbol);
+}
+```
+
+Let's refactor the Promise example in the previous section to use Tasks instead. First we use fetchJSON to rewrite the getStockSymbol and getStockPrice methods to use Tasks instead of Promises. Now we can simply change the composition function to refactor getStockPriceByName to emit Tasks instead of Promises.
+
+```JavaScript
+// ...continued
+
+// Sequence tasks using the task composition function
+
+var getStockPriceByName = task function(name) {
     var symbol = await getStockSymbol(name);
     var stockPrice = await getStockPrice(symbol);
     return stockPrice;
 }
 
 var subscription = 
-    getStockPrice("Johnson and Johnson").
+    getStockPriceByName("Johnson and Johnson").
     get(
         price => console.log(price),
         error => console.error(error));
 
-// immediately cancel outgoing requests
+// Cancel the outgoing requests
 subscription.dispose();
 ```
 
 ## Syntax
 
-The set of syntax forms are the same as for generators.
 ```
 CompositionFunctionDeclaration :
-    Expression [no LineTerminator here] function BindingIdentifier ( FormalParameters ) { FunctionBody }
+    ImportedBinding [no LineTerminator here] function BindingIdentifier ( FormalParameters ) { FunctionBody }
 
 CompositionFunctionExpression :
-    Expression [no LineTerminator here] function BindingIdentifier? ( FormalParameters ) { FunctionBody }
+    ImportedBinding [no LineTerminator here] function BindingIdentifier? ( FormalParameters ) { FunctionBody }
 
 CompositionMethod :
-    Expression PropertyName (StrictFormalParameters)  { FunctionBody }
+    ImportedBinding PropertyName (StrictFormalParameters)  { FunctionBody }
 
 CompositionArrowFunction :
-    Expression [no LineTerminator here] ArrowParameters [no LineTerminator here] => ConciseBody
+    ImportedBinding [no LineTerminator here] ArrowParameters [no LineTerminator here] => ConciseBody
 
 Declaration :
     ...
