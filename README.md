@@ -301,7 +301,7 @@ An Observable is capable of pushing multiple values to a consumer. Unlike a Prom
 
 The Composition Function for Observables resolves each Observable to the last value received. If any Observable being composed emits no value, the overall Observable completes without a value.
 
-```
+```JavaScript
 function observable(genF) {
     return {
         subscribe: function(observer) {
@@ -406,7 +406,7 @@ For more information on the Angular 2.0 data fetching APIs see https://github.co
 
 ## Composition Functions in React
 
-Like Angular, React is also considering using Observable for data fetching. See this GitHub discussion for details on the upcoming React 
+Like Angular, React is also considering using Observable for data fetching. See this GitHub discussion for details on the React data fetching APIs see https://github.com/facebook/react/issues/3398.
 
 # Composition Functions
 
