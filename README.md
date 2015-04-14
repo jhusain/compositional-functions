@@ -13,140 +13,6 @@ The current async/await syntax can only produce Promises, ceeding valuable synta
 
 A better approach is to add _extensible syntax_ to the language that can be extended by the community to compose any asynchronous primitive. This is the goal of the Compositional Function proposal.
 
-# Use of other Async Primitives in Popular Frameworks
-
-Two of the most popular MVC frameworks are building data fetching APIs using asynchronous primitives other than Promises. React and Angular 2.0 are in the process of building APIs which use Observable. The Observable interface looks like this:
-
-```JavaScript
-interface Subscription {
-    dispose(): void
-}
-
-interface Observer {
-    onNext(value):void,
-    onError(error):void,
-    onCompleted():void,
-}
-
-interface Observable {
-    subscribe(Observer): Subscription;
-}
-```
-
-An Observable is capable of pushing multiple values to a consumer. Unlike a Promise, consumers can unsubscribe from an Observable and elect to receive no further values. As subscription and unsubscription are explicit operations, an Observable can cancel scheduled or pending asynchronous operations when no more listeners are present. This is one of the main advantages of using an Observable over an ES2015 Promise.
-
-The Composition Function for Observables resolves each Observable to the last value received. If any Observable being composed emits no value, the overall Observable completes without a value.
-
-```
-function observable(genF) {
-    return {
-        subscribe: function(observer) {
-            var gen = genF(),
-                // tracks the subscription to the inner Observable
-                subscription;
-                
-            function step(nextF) {
-                var next,
-                    lastValue,
-                    valueReceived;
-                try {
-                    next = nextF();
-                } catch(e) {
-                    // finished with failure, reject the Observable
-                    observer.onError(e); 
-                    return;
-                }
-                if(next.done) {
-                    // finished with success, sending along final value
-                    try {
-                        observer.onNext(next.value);
-                        observer.onCompleted();
-                    }
-                    catch(e) {
-                        observer.onError(e);
-                    }
-                    return;
-                } 
-                // not finished, chain off the yielded Observable
-                
-                // track whether or not value was received
-                valueReceived = false;
-                subscription = next.value.subscribe({
-                    // record last value and track that value
-                    // has been received.
-                    onNext: function(v) {
-                        valueReceived = true;
-                        lastValue = v;
-                    },
-                    // forward along any errors that occur
-                    onError: function(e) {
-                        observer.onError(e);
-                    },
-                    // once stream is complete send last value
-                    // if a value was received.
-                    onCompleted: function() {
-                        if (valueReceived) {
-                            observer.onNext(lastValue);
-                        }
-                        observer.onCompleted();
-                    });
-            }
-            step(function() { return gen.next(undefined); });
-            
-            // return Subscription interface
-            return {
-                // if subscription to overall Observable is disposed, 
-                // unsubscribe from inner Observable subscription if
-                // present. This may interrupt a long series of 
-                // scheduled operations.
-                dispose: function() {
-                    if (subscription) {
-                        subscription.dispose();
-                        subscription = null;
-                    }
-                }
-            }
-        }
-    };    
-}
-
-export { observable };
-```
-
-## Angular 2.0 Example
-
-Here's an example of using an Observable composition function to simplify data access in Angular 2.0:
-
-```JavaScript
-
-import {http} from '../public/http';
-import {observable} from 
-
-observable function getStockPriceByName(stockName) {
-    var symbol = await getStockSymbol(stockName);
-    var price = await getStockPrice(symbol);
-    return price;
-}
-
-var price = getStockPriceByName("Netflix");
-
-var subscription = price.subscribe(price => console.log("The price of Netflix is ", price));
-
-exitButton.onclick = function() {
-    // cancel network request when user leaves the form
-    subscription.dispose();
-}
-```
-
-For more information on the Angular 2.0 data fetching APIs see https://github.com/jeffbcross/http-design/.
-
-## React Example
-
-Here's an example of using 
-# Composition Functions
-
-The composition function proposal is intended to allow for the composition of any async primitives that results in a single result. 
-
 ## Promise Composition with a Composition Function
 
 Here is an example of a composition function used to produce a Promise:
@@ -409,6 +275,142 @@ var subscription =
 // Cancel the outgoing requests
 subscription.dispose();
 ```
+
+
+## Use of other Async Primitives in Popular Frameworks
+
+Two of the most popular MVC frameworks are building data fetching APIs using asynchronous primitives other than Promises. React and Angular 2.0 are in the process of building APIs which use Observable. The Observable interface looks like this:
+
+```JavaScript
+interface Subscription {
+    dispose(): void
+}
+
+interface Observer {
+    onNext(value):void,
+    onError(error):void,
+    onCompleted():void,
+}
+
+interface Observable {
+    subscribe(Observer): Subscription;
+}
+```
+
+An Observable is capable of pushing multiple values to a consumer. Unlike a Promise, consumers can unsubscribe from an Observable and elect to receive no further values. As subscription and unsubscription are explicit operations, an Observable can cancel scheduled or pending asynchronous operations when no more listeners are present. This is one of the main advantages of using an Observable over an ES2015 Promise.
+
+The Composition Function for Observables resolves each Observable to the last value received. If any Observable being composed emits no value, the overall Observable completes without a value.
+
+```
+function observable(genF) {
+    return {
+        subscribe: function(observer) {
+            var gen = genF(),
+                // tracks the subscription to the inner Observable
+                subscription;
+                
+            function step(nextF) {
+                var next,
+                    lastValue,
+                    valueReceived;
+                try {
+                    next = nextF();
+                } catch(e) {
+                    // finished with failure, reject the Observable
+                    observer.onError(e); 
+                    return;
+                }
+                if(next.done) {
+                    // finished with success, sending along final value
+                    try {
+                        observer.onNext(next.value);
+                        observer.onCompleted();
+                    }
+                    catch(e) {
+                        observer.onError(e);
+                    }
+                    return;
+                } 
+                // not finished, chain off the yielded Observable
+                
+                // track whether or not value was received
+                valueReceived = false;
+                subscription = next.value.subscribe({
+                    // record last value and track that value
+                    // has been received.
+                    onNext: function(v) {
+                        valueReceived = true;
+                        lastValue = v;
+                    },
+                    // forward along any errors that occur
+                    onError: function(e) {
+                        observer.onError(e);
+                    },
+                    // once stream is complete send last value
+                    // if a value was received.
+                    onCompleted: function() {
+                        if (valueReceived) {
+                            observer.onNext(lastValue);
+                        }
+                        observer.onCompleted();
+                    });
+            }
+            step(function() { return gen.next(undefined); });
+            
+            // return Subscription interface
+            return {
+                // if subscription to overall Observable is disposed, 
+                // unsubscribe from inner Observable subscription if
+                // present. This may interrupt a long series of 
+                // scheduled operations.
+                dispose: function() {
+                    if (subscription) {
+                        subscription.dispose();
+                        subscription = null;
+                    }
+                }
+            }
+        }
+    };    
+}
+
+export { observable };
+```
+
+## Composition Functions in Angular 2.0
+
+Here's an example of using an Observable composition function to simplify data access in Angular 2.0:
+
+```JavaScript
+
+import {http} from '../public/http';
+import {observable} from 
+
+observable function getStockPriceByName(stockName) {
+    var symbol = await getStockSymbol(stockName);
+    var price = await getStockPrice(symbol);
+    return price;
+}
+
+var price = getStockPriceByName("Netflix");
+
+var subscription = price.subscribe(price => console.log("The price of Netflix is ", price));
+
+exitButton.onclick = function() {
+    // cancel network request when user leaves the form
+    subscription.dispose();
+}
+```
+
+For more information on the Angular 2.0 data fetching APIs see https://github.com/jeffbcross/http-design/.
+
+## Composition Functions in React
+
+Like Angular, React is also considering using Observable for data fetching. See this GitHub discussion for details on the upcoming React 
+
+# Composition Functions
+
+The composition function proposal is intended to allow for the composition of any async primitives that results in a single result. 
 
 ## Syntax
 
