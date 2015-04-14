@@ -384,7 +384,7 @@ Here's an example of using an Observable composition function to simplify data a
 ```JavaScript
 
 import {http} from '../public/http';
-import {observable} from 
+import {observable} from 'observable';
 
 observable function getStockPriceByName(stockName) {
     var symbol = await getStockSymbol(stockName);
